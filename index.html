@@ -48,7 +48,6 @@
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--light); color: var(--secondary); }
         
-        /* Auth UI */
         #loginScreen {
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, var(--primary), var(--secondary)); 
@@ -60,7 +59,6 @@
         }
         .auth-box h2 { margin-bottom: 25px; color: var(--primary); font-weight: 700; }
         
-        /* Layout */
         #mainContent { display: none; }
         .header { 
             background: var(--primary); color: var(--white); padding: 20px; 
@@ -74,7 +72,6 @@
         }
         .logout-btn:hover { background: #c0392b; }
 
-        /* Navigation */
         .tab-container { 
             display: flex; background: var(--white); position: sticky; top: 0; 
             z-index: 1000; overflow-x: auto; border-bottom: 1px solid #ddd;
@@ -87,7 +84,6 @@
         .tab-btn:hover { color: var(--accent); }
         .tab-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); background: #f0f7ff; }
 
-        /* Content Areas */
         .content-section { display: none; padding: 25px; max-width: 1100px; margin: auto; animation: fadeIn 0.4s; }
         .content-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -99,14 +95,12 @@
         h2 { color: var(--primary); font-size: 1.3rem; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; }
         h2::before { content: ''; width: 4px; height: 18px; background: var(--accent); margin-right: 10px; border-radius: 2px; }
 
-        /* Tables */
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; background: var(--white); }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #fdfdfd; color: var(--primary); font-weight: 600; font-size: 14px; text-transform: uppercase; }
         tr:hover { background: #fcfcfc; }
 
-        /* Forms */
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--secondary); }
         input, select { 
@@ -115,7 +109,6 @@
         }
         input:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
         
-        /* Buttons */
         button { 
             padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; 
             font-weight: 600; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center;
@@ -129,7 +122,6 @@
         .type-in { background: #e8f8f0; color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
         .type-out { background: #fdedec; color: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
 
-        /* Mobile Adjustments */
         @media (max-width: 600px) {
             .tab-btn { padding: 12px 5px; font-size: 12px; }
             .content-section { padding: 15px; }
@@ -268,10 +260,13 @@
         async save() {
             if (window.db) {
                 try {
-                    await window.dbSet(window.dbRef(window.db, 'membrane_system/users'), this.users);
-                    await window.dbSet(window.dbRef(window.db, 'membrane_system/data'), this.data);
+                    const dbRef = window.dbRef(window.db, 'membrane_system');
+                    await window.dbSet(dbRef, {
+                        users: this.users,
+                        data: this.data
+                    });
                 } catch (e) {
-                    console.error("Save Error:", e);
+                    console.error("Firebase Save Error:", e);
                 }
             }
         }
@@ -288,16 +283,14 @@
 
     async function syncWithFirebase() {
         try {
-            const userSnap = await window.dbGet(window.dbRef(window.db, 'membrane_system/users'));
-            const dataSnap = await window.dbGet(window.dbRef(window.db, 'membrane_system/data'));
-
-            if (userSnap.exists()) SYSTEM.users = userSnap.val();
-            if (dataSnap.exists()) SYSTEM.data = dataSnap.val();
-            
+            const snap = await window.dbGet(window.dbRef(window.db, 'membrane_system'));
+            if (snap.exists()) {
+                const cloudData = snap.val();
+                if(cloudData.users) SYSTEM.users = cloudData.users;
+                if(cloudData.data) SYSTEM.data = cloudData.data;
+            }
             checkPersistentSession();
-        } catch (e) {
-            console.error("Sync Error:", e);
-        }
+        } catch (e) { console.error("Sync Error:", e); }
     }
 
     function checkPersistentSession() {
@@ -313,7 +306,6 @@
         if(username === ADMIN_USER) document.getElementById('adminTabBtn').style.display = 'block';
         initApp();
         
-        // Live Listen for Data updates
         window.dbOnValue(window.dbRef(window.db, 'membrane_system/data'), (snapshot) => {
             if (snapshot.exists()) {
                 SYSTEM.data = snapshot.val();
@@ -327,31 +319,27 @@
         if(mode === 'REGISTER') {
             const u = document.getElementById('userReg').value.trim();
             const p = document.getElementById('passReg').value;
-            if(!u || !p) return alert("Please fill all fields.");
-            if(SYSTEM.users[u]) return alert("Username already exists.");
+            if(!u || !p) return alert("Fill all fields.");
+            if(SYSTEM.users[u]) return alert("Exists.");
             SYSTEM.users[u] = { pass: p, status: "pending", role: "user" };
             SYSTEM.save();
-            alert("Request submitted! Please wait for Sazzad Hossain to approve.");
-            toggleAuth(false);
+            alert("Requested!"); toggleAuth(false);
         } else {
             const u = document.getElementById('userLogin').value;
             const p = document.getElementById('passLogin').value;
             const user = SYSTEM.users[u];
             if(user && user.pass === p) {
-                if(user.status !== "active") return alert("Account PENDING. Contact Admin.");
+                if(user.status !== "active") return alert("Pending.");
                 localStorage.setItem('membrane_logged_user', u);
                 enterMainUI(u);
-            } else { alert("Invalid Credentials."); }
+            } else { alert("Invalid."); }
         }
     }
 
-    function logout() {
-        localStorage.removeItem('membrane_logged_user');
-        location.reload();
-    }
+    function logout() { localStorage.removeItem('membrane_logged_user'); location.reload(); }
 
     function initApp() {
-        const cats = Object.keys(SYSTEM.data.categories);
+        const cats = Object.keys(SYSTEM.data.categories || {});
         const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
         document.getElementById('entryCat').innerHTML = opts;
         document.getElementById('newProdCat').innerHTML = opts;
@@ -369,17 +357,19 @@
 
     function updateEntryModels() {
         const cat = document.getElementById('entryCat').value;
-        const models = SYSTEM.data.categories[cat] || [];
+        const models = (SYSTEM.data.categories && SYSTEM.data.categories[cat]) ? SYSTEM.data.categories[cat] : [];
         document.getElementById('entryModel').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
     }
 
     function loadStockDisplay() {
         let html = "";
-        for(let cat in SYSTEM.data.categories) {
-            const items = SYSTEM.data.categories[cat];
+        const cats = SYSTEM.data.categories || {};
+        const stocks = SYSTEM.data.stocks || {};
+        for(let cat in cats) {
+            const items = cats[cat];
             items.forEach((item, index) => {
                 html += `<tr>${index === 0 ? `<td rowspan="${items.length}"><strong>${cat}</strong></td>` : ''}
-                <td>${item}</td><td><strong>${SYSTEM.data.stocks[item] || 0}</strong></td></tr>`;
+                <td>${item}</td><td><strong>${stocks[item] || 0}</strong></td></tr>`;
             });
         }
         document.getElementById('inventoryBody').innerHTML = html;
@@ -388,15 +378,15 @@
     function processStock(type) {
         const item = document.getElementById('entryModel').value;
         const qty = parseInt(document.getElementById('entryQty').value);
-        if(!item || isNaN(qty) || qty <= 0) return alert("Select a valid product and quantity.");
-        if(type === 'OUT' && (SYSTEM.data.stocks[item] || 0) < qty) return alert("Low stock! Cannot proceed.");
+        if(!item || isNaN(qty) || qty <= 0) return alert("Invalid entry.");
+        if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
+        if(type === 'OUT' && (SYSTEM.data.stocks[item] || 0) < qty) return alert("Low stock.");
         
         SYSTEM.data.stocks[item] = (SYSTEM.data.stocks[item] || 0) + (type === 'IN' ? qty : -qty);
         if(!SYSTEM.data.history) SYSTEM.data.history = [];
         SYSTEM.data.history.unshift({ timestamp: new Date().getTime(), date: new Date().toLocaleString(), item, type, qty });
         SYSTEM.save();
-        alert("Transaction Successful!");
-        document.getElementById('entryQty').value = 0;
+        alert("Success!"); document.getElementById('entryQty').value = 0;
     }
 
     function applyFilters() {
@@ -411,10 +401,8 @@
     function downloadPDF(tableId, fileName) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.setFontSize(18);
         doc.text("Membrane Management System", 14, 20);
-        doc.text("Report: " + new Date().toLocaleString(), 14, 28);
-        doc.autoTable({ html: '#' + tableId, startY: 35, theme: 'grid' });
+        doc.autoTable({ html: '#' + tableId, startY: 30 });
         doc.save(fileName + ".pdf");
     }
 
@@ -428,36 +416,39 @@
         for(let u in SYSTEM.users) {
             if(u === ADMIN_USER) continue;
             const user = SYSTEM.users[u];
-            html += `<tr><td>${u}</td><td><span style="color:${user.status==='active'?'green':'orange'}">${user.status.toUpperCase()}</span></td>
-                <td>${user.status === 'pending' ? `<button style="background:var(--success); color:white; padding:5px 10px; margin-right:5px;" onclick="approve('${u}')">Approve</button>` : ''}
-                <button style="background:var(--danger); color:white; padding:5px 10px;" onclick="delU('${u}')">Delete</button></td></tr>`;
+            html += `<tr><td>${u}</td><td>${user.status}</td>
+                <td>${user.status === 'pending' ? `<button onclick="approve('${u}')">Approve</button>` : ''}
+                <button onclick="delU('${u}')">Delete</button></td></tr>`;
         }
         document.getElementById('userListBody').innerHTML = html;
     }
     function approve(u) { SYSTEM.users[u].status = 'active'; SYSTEM.save(); loadUserList(); }
-    function delU(u) { if(confirm("Are you sure?")) { delete SYSTEM.users[u]; SYSTEM.save(); loadUserList(); } }
+    function delU(u) { if(confirm("Sure?")) { delete SYSTEM.users[u]; SYSTEM.save(); loadUserList(); } }
 
     async function addNewProduct() {
         const cat = document.getElementById('newProdCat').value;
         const name = document.getElementById('newProdName').value.trim();
         
-        if(!name) return alert("Please enter a product name.");
-        if(SYSTEM.data.stocks[name] !== undefined) return alert("Duplicate Product! This name already exists.");
+        if(!name) return alert("Enter Name.");
+        if(SYSTEM.data.stocks && SYSTEM.data.stocks[name] !== undefined) return alert("Duplicate.");
 
-        // Ensure category array exists
+        if(!SYSTEM.data.categories) SYSTEM.data.categories = {};
         if(!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
-        
-        // Push to local object
+        if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
+
         SYSTEM.data.categories[cat].push(name);
         SYSTEM.data.stocks[name] = 0;
 
-        // Force Save to Firebase
+        const btn = event.currentTarget;
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+
         await SYSTEM.save();
         
-        alert("Success! New Product Added Permanently.");
+        alert("Saved to Database!");
         document.getElementById('newProdName').value = "";
-        
-        // Refresh UI components
+        btn.innerText = "Save New Product";
+        btn.disabled = false;
         initApp();
     }
 </script>
