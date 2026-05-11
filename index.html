@@ -311,7 +311,6 @@
                 SYSTEM.data = snapshot.val();
                 loadStockDisplay();
                 applyFilters();
-                refreshDropdowns(); // Ensure dropdowns stay updated with new products
             }
         });
     }
@@ -344,18 +343,13 @@
     }
 
     function initApp() {
-        refreshDropdowns();
-        loadStockDisplay();
-        if(localStorage.getItem('membrane_logged_user') === ADMIN_USER) loadUserList();
-    }
-
-    // New helper function to keep dropdowns in sync with SYSTEM.data
-    function refreshDropdowns() {
         const cats = Object.keys(SYSTEM.data.categories);
         const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
         document.getElementById('entryCat').innerHTML = opts;
         document.getElementById('newProdCat').innerHTML = opts;
         updateEntryModels();
+        loadStockDisplay();
+        if(localStorage.getItem('membrane_logged_user') === ADMIN_USER) loadUserList();
     }
 
     function openTab(tabId) {
@@ -435,30 +429,26 @@
     function approve(u) { SYSTEM.users[u].status = 'active'; SYSTEM.save(); loadUserList(); }
     function delU(u) { if(confirm("Are you sure?")) { delete SYSTEM.users[u]; SYSTEM.save(); loadUserList(); } }
 
-    function addNewProduct() {
+    async function addNewProduct() {
         const cat = document.getElementById('newProdCat').value;
         const name = document.getElementById('newProdName').value.trim();
+        if(!name) return alert("Please enter product name.");
+        if(SYSTEM.data.stocks[name] !== undefined) return alert("This product already exists.");
         
-        if(!name) return alert("Please enter a product name.");
-        // Check if product already exists in stocks to prevent duplicates
-        if(SYSTEM.data.stocks && SYSTEM.data.stocks[name] !== undefined) return alert("This product already exists.");
-        
-        // Update SYSTEM data
+        // Update local memory
         if(!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
         SYSTEM.data.categories[cat].push(name);
-        
-        if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
         SYSTEM.data.stocks[name] = 0;
-
-        // Save to Firebase
-        SYSTEM.save().then(() => {
+        
+        // Save to Firebase immediately
+        try {
+            await SYSTEM.save();
             alert("New Product Added Successfully!");
             document.getElementById('newProdName').value = "";
-            refreshDropdowns(); // Re-sync UI
-            loadStockDisplay();
-        }).catch(err => {
-            alert("Error saving data: " + err);
-        });
+            initApp(); 
+        } catch (e) {
+            alert("Sync Failed! Please check internet connection.");
+        }
     }
 </script>
 </body>
