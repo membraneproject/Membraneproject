@@ -287,7 +287,12 @@
         const dataSnap = await window.dbGet(window.dbRef(window.db, 'membrane_system/data'));
 
         if (userSnap.exists()) SYSTEM.users = userSnap.val();
-        if (dataSnap.exists()) SYSTEM.data = dataSnap.val();
+        if (dataSnap.exists()) {
+            SYSTEM.data = dataSnap.val();
+            // Ensure data structure is correct after sync
+            if(!SYSTEM.data.categories) SYSTEM.data.categories = DEFAULT_DATA.categories;
+            if(!SYSTEM.data.stocks) SYSTEM.data.stocks = DEFAULT_DATA.stocks;
+        }
         
         checkPersistentSession();
     }
@@ -305,12 +310,12 @@
         if(username === ADMIN_USER) document.getElementById('adminTabBtn').style.display = 'block';
         initApp();
         
-        // Live Listen for Data updates
         window.dbOnValue(window.dbRef(window.db, 'membrane_system/data'), (snapshot) => {
             if (snapshot.exists()) {
                 SYSTEM.data = snapshot.val();
                 loadStockDisplay();
                 applyFilters();
+                updateEntryModels(); // Refresh entry dropdowns too
             }
         });
     }
@@ -367,11 +372,13 @@
 
     function loadStockDisplay() {
         let html = "";
-        for(let cat in SYSTEM.data.categories) {
-            const items = SYSTEM.data.categories[cat];
+        const categories = SYSTEM.data.categories;
+        for(let cat in categories) {
+            const items = categories[cat] || [];
             items.forEach((item, index) => {
+                const stockVal = SYSTEM.data.stocks[item] !== undefined ? SYSTEM.data.stocks[item] : 0;
                 html += `<tr>${index === 0 ? `<td rowspan="${items.length}"><strong>${cat}</strong></td>` : ''}
-                <td>${item}</td><td><strong>${SYSTEM.data.stocks[item] || 0}</strong></td></tr>`;
+                <td>${item}</td><td><strong>${stockVal}</strong></td></tr>`;
             });
         }
         document.getElementById('inventoryBody').innerHTML = html;
@@ -433,19 +440,22 @@
         const cat = document.getElementById('newProdCat').value;
         const name = document.getElementById('newProdName').value.trim();
         if(!name) return alert("Please enter product name.");
+        
+        if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
         if(SYSTEM.data.stocks[name] !== undefined) return alert("This product already exists.");
         
-        // Update local memory
         if(!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
+        
+        // Update Local
         SYSTEM.data.categories[cat].push(name);
         SYSTEM.data.stocks[name] = 0;
         
-        // Save to Firebase immediately
         try {
             await SYSTEM.save();
             alert("New Product Added Successfully!");
             document.getElementById('newProdName').value = "";
-            initApp(); 
+            loadStockDisplay(); // Force refresh local UI
+            updateEntryModels(); // Update dropdowns
         } catch (e) {
             alert("Sync Failed! Please check internet connection.");
         }
