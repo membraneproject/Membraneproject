@@ -175,7 +175,7 @@
     <div id="home" class="content-section active">
         <div class="card">
             <h2>Welcome Back</h2>
-            <p style="color: var(--gray); line-height: 1.6;"</p>
+            <p style="color: var(--gray); line-height: 1.6;">Manage your membrane stock and transactions efficiently.</p>
         </div>
     </div>
 
@@ -311,6 +311,7 @@
                 SYSTEM.data = snapshot.val();
                 loadStockDisplay();
                 applyFilters();
+                refreshDropdowns(); // Ensure dropdowns stay updated with new products
             }
         });
     }
@@ -343,13 +344,18 @@
     }
 
     function initApp() {
+        refreshDropdowns();
+        loadStockDisplay();
+        if(localStorage.getItem('membrane_logged_user') === ADMIN_USER) loadUserList();
+    }
+
+    // New helper function to keep dropdowns in sync with SYSTEM.data
+    function refreshDropdowns() {
         const cats = Object.keys(SYSTEM.data.categories);
         const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
         document.getElementById('entryCat').innerHTML = opts;
         document.getElementById('newProdCat').innerHTML = opts;
         updateEntryModels();
-        loadStockDisplay();
-        if(localStorage.getItem('membrane_logged_user') === ADMIN_USER) loadUserList();
     }
 
     function openTab(tabId) {
@@ -432,13 +438,27 @@
     function addNewProduct() {
         const cat = document.getElementById('newProdCat').value;
         const name = document.getElementById('newProdName').value.trim();
-        if(!name || SYSTEM.data.stocks[name] !== undefined) return alert("Invalid Name or Duplicate.");
+        
+        if(!name) return alert("Please enter a product name.");
+        // Check if product already exists in stocks to prevent duplicates
+        if(SYSTEM.data.stocks && SYSTEM.data.stocks[name] !== undefined) return alert("This product already exists.");
+        
+        // Update SYSTEM data
+        if(!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
         SYSTEM.data.categories[cat].push(name);
+        
+        if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
         SYSTEM.data.stocks[name] = 0;
-        SYSTEM.save();
-        alert("New Product Added!");
-        document.getElementById('newProdName').value = "";
-        initApp();
+
+        // Save to Firebase
+        SYSTEM.save().then(() => {
+            alert("New Product Added Successfully!");
+            document.getElementById('newProdName').value = "";
+            refreshDropdowns(); // Re-sync UI
+            loadStockDisplay();
+        }).catch(err => {
+            alert("Error saving data: " + err);
+        });
     }
 </script>
 </body>
