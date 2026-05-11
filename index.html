@@ -25,7 +25,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Global exposing for existing logic
         window.db = db;
         window.dbRef = ref;
         window.dbSet = set;
@@ -35,125 +34,51 @@
 
     <style>
         :root {
-            --primary: #1a2a3a;
-            --secondary: #2c3e50;
-            --accent: #3498db;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --light: #f8f9fa;
-            --white: #ffffff;
-            --gray: #95a5a6;
-            --shadow: 0 4px 15px rgba(0,0,0,0.1);
+            --primary: #1a2a3a; --secondary: #2c3e50; --accent: #3498db;
+            --success: #2ecc71; --danger: #e74c3c; --light: #f8f9fa;
+            --white: #ffffff; --gray: #95a5a6; --shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--light); color: var(--secondary); }
-        
-        /* Auth UI */
-        #loginScreen {
-            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
-            z-index: 2000; align-items: center; justify-content: center;
-        }
-        .auth-box { 
-            background: var(--white); padding: 40px; border-radius: 15px; 
-            width: 350px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
-        }
-        .auth-box h2 { margin-bottom: 25px; color: var(--primary); font-weight: 700; }
-        
-        /* Layout */
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--light); color: var(--secondary); }
+        #loginScreen { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--secondary)); z-index: 2000; align-items: center; justify-content: center; }
+        .auth-box { background: var(--white); padding: 40px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
         #mainContent { display: none; }
-        .header { 
-            background: var(--primary); color: var(--white); padding: 20px; 
-            text-align: center; position: relative; box-shadow: var(--shadow);
-        }
-        .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
-        .logout-btn { 
-            position: absolute; right: 20px; top: 18px; background: var(--danger); 
-            padding: 8px 15px; font-size: 12px; border:none; border-radius:6px; 
-            color:white; cursor:pointer; font-weight: bold; transition: 0.3s;
-        }
-        .logout-btn:hover { background: #c0392b; }
-
-        /* Navigation */
-        .tab-container { 
-            display: flex; background: var(--white); position: sticky; top: 0; 
-            z-index: 1000; overflow-x: auto; border-bottom: 1px solid #ddd;
-        }
-        .tab-btn { 
-            flex: 1; padding: 16px; border: none; color: var(--gray); background: none; 
-            cursor: pointer; font-weight: 600; min-width: 110px; transition: 0.3s;
-            border-bottom: 3px solid transparent;
-        }
-        .tab-btn:hover { color: var(--accent); }
+        .header { background: var(--primary); color: var(--white); padding: 20px; text-align: center; position: relative; }
+        .logout-btn { position: absolute; right: 20px; top: 18px; background: var(--danger); padding: 8px 15px; border:none; border-radius:6px; color:white; cursor:pointer; font-weight: bold; }
+        .tab-container { display: flex; background: var(--white); position: sticky; top: 0; z-index: 1000; overflow-x: auto; border-bottom: 1px solid #ddd; }
+        .tab-btn { flex: 1; padding: 15px; border: none; color: var(--gray); background: none; cursor: pointer; font-weight: 600; min-width: 100px; transition: 0.3s; }
         .tab-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); background: #f0f7ff; }
-
-        /* Content Areas */
-        .content-section { display: none; padding: 25px; max-width: 1100px; margin: auto; animation: fadeIn 0.4s; }
+        .content-section { display: none; padding: 20px; max-width: 1000px; margin: auto; }
         .content-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card { 
-            background: var(--white); padding: 25px; border-radius: 12px; 
-            box-shadow: var(--shadow); margin-bottom: 25px; border: 1px solid rgba(0,0,0,0.05);
-        }
-        h2 { color: var(--primary); font-size: 1.3rem; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; }
-        h2::before { content: ''; width: 4px; height: 18px; background: var(--accent); margin-right: 10px; border-radius: 2px; }
-
-        /* Tables */
-        .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; background: var(--white); }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #fdfdfd; color: var(--primary); font-weight: 600; font-size: 14px; text-transform: uppercase; }
-        tr:hover { background: #fcfcfc; }
-
-        /* Forms */
-        .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--secondary); }
-        input, select { 
-            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; 
-            box-sizing: border-box; transition: 0.3s; font-size: 14px;
-        }
-        input:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
-        
-        /* Buttons */
-        button { 
-            padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; 
-            font-weight: 600; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center;
-        }
+        .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #fdfdfd; color: var(--primary); font-size: 14px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; }
         .btn-auth { background: var(--accent); color: white; width: 100%; margin-top: 10px; }
-        .btn-auth:hover { background: #2980b9; transform: translateY(-1px); }
-        
         .btn-pdf { background: var(--primary); color: white; margin-top: 15px; }
-        .btn-pdf:hover { background: #000; }
-        
-        .type-in { background: #e8f8f0; color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .type-out { background: #fdedec; color: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-
-        /* Mobile Adjustments */
-        @media (max-width: 600px) {
-            .tab-btn { padding: 12px 5px; font-size: 12px; }
-            .content-section { padding: 15px; }
-            .header h1 { font-size: 18px; }
-        }
+        .type-in { background: #e8f8f0; color: var(--success); padding: 3px 7px; border-radius: 4px; font-size: 11px; }
+        .type-out { background: #fdedec; color: var(--danger); padding: 3px 7px; border-radius: 4px; font-size: 11px; }
     </style>
 </head>
 <body onload="waitForFirebase()">
 
 <div id="loginScreen">
     <div class="auth-box" id="loginForm">
-        <h2>Membrane Login</h2>
+        <h2 style="color:var(--primary)">Membrane Login</h2>
         <div class="form-group"><input type="text" id="userLogin" placeholder="Username"></div>
         <div class="form-group"><input type="password" id="passLogin" placeholder="Password"></div>
-        <button class="btn-auth" onclick="handleAuth('LOGIN')">Login to System</button>
-        <span class="toggle-link" style="color:var(--accent); cursor:pointer; display:block; margin-top:15px; font-size:14px;" onclick="toggleAuth(true)">Need an account? Request Access</span>
+        <button class="btn-auth" onclick="handleAuth('LOGIN')">Login</button>
+        <p style="font-size:13px; margin-top:15px; cursor:pointer; color:var(--accent)" onclick="toggleAuth(true)">Request Access</p>
     </div>
-
     <div class="auth-box" id="regForm" style="display: none;">
-        <h2>Register</h2>
-        <div class="form-group"><input type="text" id="userReg" placeholder="Choose Username"></div>
-        <div class="form-group"><input type="password" id="passReg" placeholder="Choose Password"></div>
-        <button class="btn-auth" onclick="handleAuth('REGISTER')">Request Access</button>
-        <span class="toggle-link" style="color:var(--accent); cursor:pointer; display:block; margin-top:15px; font-size:14px;" onclick="toggleAuth(false)">Back to Login</span>
+        <h2 style="color:var(--primary)">Register</h2>
+        <div class="form-group"><input type="text" id="userReg" placeholder="Username"></div>
+        <div class="form-group"><input type="password" id="passReg" placeholder="Password"></div>
+        <button class="btn-auth" onclick="handleAuth('REGISTER')">Request</button>
+        <p style="font-size:13px; margin-top:15px; cursor:pointer; color:var(--accent)" onclick="toggleAuth(false)">Back to Login</p>
     </div>
 </div>
 
@@ -164,41 +89,33 @@
     </div>
 
     <div class="tab-container">
-        <button class="tab-btn active" onclick="openTab('home')">Home</button>
-        <button class="tab-btn" onclick="openTab('inventory')">Inventory</button>
-        <button class="tab-btn" onclick="openTab('fg_packaging')">Entry</button>
-        <button class="tab-btn" onclick="openTab('history')">History</button>
-        <button class="tab-btn" id="adminTabBtn" style="display:none;" onclick="openTab('admin_panel')">Admin</button>
-        <button class="tab-btn" onclick="openTab('add_product')">Settings</button>
+        <button class="tab-btn active" onclick="openTab('inventory', event)">Inventory</button>
+        <button class="tab-btn" onclick="openTab('fg_packaging', event)">Entry</button>
+        <button class="tab-btn" onclick="openTab('history', event)">History</button>
+        <button class="tab-btn" id="adminTabBtn" style="display:none;" onclick="openTab('admin_panel', event)">Admin</button>
+        <button class="tab-btn" onclick="openTab('add_product', event)">Settings</button>
     </div>
 
-    <div id="home" class="content-section active">
-        <div class="card">
-            <h2>Welcome Back</h2>
-            <p style="color: var(--gray); line-height: 1.6;">Manage your membrane stock and transactions efficiently.</p>
-        </div>
-    </div>
-
-    <div id="inventory" class="content-section">
+    <div id="inventory" class="content-section active">
         <div class="card">
             <h2>Live Inventory Status</h2>
-            <div class="table-responsive">
+            <div style="overflow-x:auto;">
                 <table id="dynamicStockTable">
                     <thead><tr><th>Category</th><th>Product Model</th><th>In Stock</th></tr></thead>
                     <tbody id="inventoryBody"></tbody>
                 </table>
             </div>
-            <button class="btn-pdf" onclick="downloadPDF('dynamicStockTable', 'Stock_Report')">Generate PDF Report</button>
+            <button class="btn-pdf" onclick="downloadPDF('dynamicStockTable', 'Stock_Report')">Download PDF</button>
         </div>
     </div>
 
     <div id="fg_packaging" class="content-section">
-        <div class="card" style="max-width: 500px; margin: auto;">
+        <div class="card" style="max-width: 450px; margin: auto;">
             <h2>Stock Transaction</h2>
             <div class="form-group"><label>Category</label><select id="entryCat" onchange="updateEntryModels()"></select></div>
             <div class="form-group"><label>Product Name</label><select id="entryModel"></select></div>
             <div class="form-group"><label>Quantity</label><input type="number" id="entryQty" value="0"></div>
-            <div style="display:flex; gap:15px; margin-top:20px;">
+            <div style="display:flex; gap:10px; margin-top:15px;">
                 <button style="background:var(--success); color:white; flex:1" onclick="processStock('IN')">Stock IN</button>
                 <button style="background:var(--danger); color:white; flex:1" onclick="processStock('OUT')">Stock OUT</button>
             </div>
@@ -208,258 +125,204 @@
     <div id="history" class="content-section">
         <div class="card">
             <h2>Transaction Records</h2>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:15px; margin-bottom:20px; background:#f9f9f9; padding:15px; border-radius:10px;">
-                <input type="text" id="filterName" placeholder="Search product..." oninput="applyFilters()">
-                <input type="date" id="filterFrom" onchange="applyFilters()">
-                <input type="date" id="filterTo" onchange="applyFilters()">
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                <input type="text" id="filterName" placeholder="Search product..." oninput="applyFilters()" style="flex:1; min-width:150px;">
+                <input type="date" id="filterFrom" onchange="applyFilters()" style="flex:1;">
+                <input type="date" id="filterTo" onchange="applyFilters()" style="flex:1;">
             </div>
-            <div class="table-responsive">
+            <div style="overflow-x:auto;">
                 <table id="historyTable">
                     <thead><tr><th>Date & Time</th><th>Product</th><th>Type</th><th>Qty</th></tr></thead>
                     <tbody id="historyBody"></tbody>
                 </table>
             </div>
-            <button class="btn-pdf" onclick="downloadPDF('historyTable', 'Transaction_History')">Export History (PDF)</button>
         </div>
     </div>
 
     <div id="admin_panel" class="content-section">
         <div class="card">
-            <h2>Access Control</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>User</th><th>Status</th><th>Actions</th></tr></thead>
-                    <tbody id="userListBody"></tbody>
-                </table>
-            </div>
+            <h2>User Management</h2>
+            <table><thead><tr><th>User</th><th>Status</th><th>Action</th></tr></thead><tbody id="userListBody"></tbody></table>
         </div>
     </div>
 
     <div id="add_product" class="content-section">
-        <div class="card" style="max-width: 500px; margin: auto;">
-            <h2>Configuration</h2>
-            <div class="form-group"><label>Select Category</label><select id="newProdCat"></select></div>
-            <div class="form-group"><label>New Model Name</label><input type="text" id="newProdName" placeholder="Type name here..."></div>
-            <button class="btn-auth" onclick="addNewProduct()">Save New Product</button>
+        <div class="card" style="max-width: 450px; margin: auto;">
+            <h2>Add New Product</h2>
+            <div class="form-group"><label>Category</label><select id="newProdCat"></select></div>
+            <div class="form-group"><label>Product Name</label><input type="text" id="newProdName" placeholder="Enter name..."></div>
+            <button class="btn-auth" onclick="addNewProduct()">Add Product</button>
         </div>
     </div>
 </div>
 
 <script>
     const ADMIN_USER = "Sazzad Hossain";
-    const ADMIN_PASS = "866199";
+    let SYSTEM = { users: {}, data: { categories: {}, stocks: {}, history: [] } };
 
-    const DEFAULT_DATA = {
-        categories: {
-            "Industrial": ["BW 4040", "BW 4040 LP", "BW 8040", "BW FR 8040"],
-            "Household": ["75 GPD", "100 GPD", "125 GPD"],
-            "Raw Material": ["Outer Pipe/Tube"]
-        },
-        stocks: {
-            "BW 4040": 0, "BW 4040 LP": 0, "BW 8040": 0, "BW FR 8040": 0,
-            "75 GPD": 0, "100 GPD": 0, "125 GPD": 0, "Outer Pipe/Tube": 0
-        },
-        history: []
-    };
-
-    let SYSTEM = {
-        users: { "Sazzad Hossain": { pass: "866199", status: "active", role: "admin" } },
-        data: DEFAULT_DATA,
-        async save() {
-            if (window.db) {
-                await window.dbSet(window.dbRef(window.db, 'membrane_system/users'), this.users);
-                await window.dbSet(window.dbRef(window.db, 'membrane_system/data'), this.data);
-            }
+    async function saveToDB() {
+        if (window.db) {
+            await window.dbSet(window.dbRef(window.db, 'membrane_system'), SYSTEM);
         }
-    };
+    }
 
     function waitForFirebase() {
-        const check = setInterval(() => {
+        let count = 0;
+        const interval = setInterval(() => {
             if (window.db) {
-                clearInterval(check);
-                syncWithFirebase();
+                clearInterval(interval);
+                syncData();
             }
+            if (count++ > 20) clearInterval(interval);
         }, 500);
     }
 
-    async function syncWithFirebase() {
-        const userSnap = await window.dbGet(window.dbRef(window.db, 'membrane_system/users'));
-        const dataSnap = await window.dbGet(window.dbRef(window.db, 'membrane_system/data'));
-
-        if (userSnap.exists()) SYSTEM.users = userSnap.val();
-        if (dataSnap.exists()) {
-            SYSTEM.data = dataSnap.val();
-            // Ensure data structure is correct after sync
-            if(!SYSTEM.data.categories) SYSTEM.data.categories = DEFAULT_DATA.categories;
-            if(!SYSTEM.data.stocks) SYSTEM.data.stocks = DEFAULT_DATA.stocks;
-        }
-        
-        checkPersistentSession();
-    }
-
-    function checkPersistentSession() {
-        const loggedUser = localStorage.getItem('membrane_logged_user');
-        if (loggedUser && SYSTEM.users[loggedUser] && SYSTEM.users[loggedUser].status === 'active') {
-            enterMainUI(loggedUser);
-        }
-    }
-
-    function enterMainUI(username) {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        if(username === ADMIN_USER) document.getElementById('adminTabBtn').style.display = 'block';
-        initApp();
-        
-        window.dbOnValue(window.dbRef(window.db, 'membrane_system/data'), (snapshot) => {
+    function syncData() {
+        window.dbOnValue(window.dbRef(window.db, 'membrane_system'), (snapshot) => {
             if (snapshot.exists()) {
-                SYSTEM.data = snapshot.val();
-                loadStockDisplay();
-                applyFilters();
-                updateEntryModels(); // Refresh entry dropdowns too
+                const val = snapshot.val();
+                SYSTEM.users = val.users || {};
+                SYSTEM.data = val.data || { categories: {}, stocks: {}, history: [] };
+                
+                // Ensure default structure if missing
+                if(!SYSTEM.data.categories) SYSTEM.data.categories = {"Industrial": [], "Household": [], "Raw Material": []};
+                if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
+                
+                checkSession();
             }
         });
     }
 
-    function handleAuth(mode) {
-        if(mode === 'REGISTER') {
-            const u = document.getElementById('userReg').value.trim();
-            const p = document.getElementById('passReg').value;
-            if(!u || !p) return alert("Please fill all fields.");
-            if(SYSTEM.users[u]) return alert("Username already exists.");
-            SYSTEM.users[u] = { pass: p, status: "pending", role: "user" };
-            SYSTEM.save();
-            alert("Request submitted! Please wait for Sazzad Hossain to approve.");
-            toggleAuth(false);
-        } else {
-            const u = document.getElementById('userLogin').value;
-            const p = document.getElementById('passLogin').value;
-            const user = SYSTEM.users[u];
-            if(user && user.pass === p) {
-                if(user.status !== "active") return alert("Account PENDING. Contact Admin.");
-                localStorage.setItem('membrane_logged_user', u);
-                enterMainUI(u);
-            } else { alert("Invalid Credentials."); }
+    function checkSession() {
+        const user = localStorage.getItem('membrane_user');
+        if (user && SYSTEM.users[user] && SYSTEM.users[user].status === 'active') {
+            showMain(user);
         }
     }
 
-    function logout() {
-        localStorage.removeItem('membrane_logged_user');
-        location.reload();
+    function showMain(user) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        if (user === ADMIN_USER) document.getElementById('adminTabBtn').style.display = 'block';
+        refreshUI();
     }
 
-    function initApp() {
+    function handleAuth(mode) {
+        if (mode === 'REGISTER') {
+            const u = document.getElementById('userReg').value.trim();
+            const p = document.getElementById('passReg').value;
+            if (!u || !p) return alert("Fill all fields");
+            SYSTEM.users[u] = { pass: p, status: 'pending' };
+            saveToDB();
+            alert("Requested! Wait for Admin approval.");
+        } else {
+            const u = document.getElementById('userLogin').value.trim();
+            const p = document.getElementById('passLogin').value;
+            const user = SYSTEM.users[u];
+            if (user && user.pass === p) {
+                if (user.status !== 'active') return alert("Contact Sazzad Hossain for access.");
+                localStorage.setItem('membrane_user', u);
+                showMain(u);
+            } else alert("Wrong credentials");
+        }
+    }
+
+    function refreshUI() {
+        loadStockTable();
         const cats = Object.keys(SYSTEM.data.categories);
-        const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-        document.getElementById('entryCat').innerHTML = opts;
-        document.getElementById('newProdCat').innerHTML = opts;
+        const optHtml = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        document.getElementById('entryCat').innerHTML = optHtml;
+        document.getElementById('newProdCat').innerHTML = optHtml;
         updateEntryModels();
-        loadStockDisplay();
-        if(localStorage.getItem('membrane_logged_user') === ADMIN_USER) loadUserList();
+        applyFilters();
+        if(localStorage.getItem('membrane_user') === ADMIN_USER) loadUserAdmin();
     }
 
-    function openTab(tabId) {
-        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        if (event) event.currentTarget.classList.add('active');
-    }
-
-    function updateEntryModels() {
-        const cat = document.getElementById('entryCat').value;
-        const models = SYSTEM.data.categories[cat] || [];
-        document.getElementById('entryModel').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
-    }
-
-    function loadStockDisplay() {
+    function loadStockTable() {
         let html = "";
-        const categories = SYSTEM.data.categories;
-        for(let cat in categories) {
-            const items = categories[cat] || [];
+        for (let cat in SYSTEM.data.categories) {
+            const items = SYSTEM.data.categories[cat] || [];
             items.forEach((item, index) => {
-                const stockVal = SYSTEM.data.stocks[item] !== undefined ? SYSTEM.data.stocks[item] : 0;
+                const qty = SYSTEM.data.stocks[item] || 0;
                 html += `<tr>${index === 0 ? `<td rowspan="${items.length}"><strong>${cat}</strong></td>` : ''}
-                <td>${item}</td><td><strong>${stockVal}</strong></td></tr>`;
+                        <td>${item}</td><td><strong>${qty}</strong></td></tr>`;
             });
         }
         document.getElementById('inventoryBody').innerHTML = html;
     }
 
+    function updateEntryModels() {
+        const cat = document.getElementById('entryCat').value;
+        const items = SYSTEM.data.categories[cat] || [];
+        document.getElementById('entryModel').innerHTML = items.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
     function processStock(type) {
         const item = document.getElementById('entryModel').value;
         const qty = parseInt(document.getElementById('entryQty').value);
-        if(!item || isNaN(qty) || qty <= 0) return alert("Select a valid product and quantity.");
-        if(type === 'OUT' && (SYSTEM.data.stocks[item] || 0) < qty) return alert("Low stock! Cannot proceed.");
-        
+        if (!item || isNaN(qty) || qty <= 0) return alert("Invalid entry");
+        if (type === 'OUT' && (SYSTEM.data.stocks[item] || 0) < qty) return alert("Stock too low");
+
         SYSTEM.data.stocks[item] = (SYSTEM.data.stocks[item] || 0) + (type === 'IN' ? qty : -qty);
         if(!SYSTEM.data.history) SYSTEM.data.history = [];
-        SYSTEM.data.history.unshift({ timestamp: new Date().getTime(), date: new Date().toLocaleString(), item, type, qty });
-        SYSTEM.save();
-        alert("Transaction Successful!");
+        SYSTEM.data.history.unshift({ t: Date.now(), dt: new Date().toLocaleString(), item, type, qty });
+        saveToDB();
+        alert("Success!");
         document.getElementById('entryQty').value = 0;
     }
 
+    function addNewProduct() {
+        const cat = document.getElementById('newProdCat').value;
+        const name = document.getElementById('newProdName').value.trim();
+        if (!name) return alert("Enter product name");
+        if (SYSTEM.data.stocks[name] !== undefined) return alert("Already exists");
+
+        if (!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
+        SYSTEM.data.categories[cat].push(name);
+        SYSTEM.data.stocks[name] = 0;
+
+        saveToDB().then(() => {
+            alert("Added!");
+            document.getElementById('newProdName').value = "";
+            refreshUI();
+        });
+    }
+
     function applyFilters() {
-        if(!SYSTEM.data.history) return;
         const nameF = document.getElementById('filterName').value.toLowerCase();
-        const fromD = document.getElementById('filterFrom').value ? new Date(document.getElementById('filterFrom').value).setHours(0,0,0,0) : null;
-        const toD = document.getElementById('filterTo').value ? new Date(document.getElementById('filterTo').value).setHours(23,59,59,999) : null;
-        const filtered = SYSTEM.data.history.filter(h => (h.item.toLowerCase().includes(nameF)) && (!fromD || h.timestamp >= fromD) && (!toD || h.timestamp <= toD));
-        document.getElementById('historyBody').innerHTML = filtered.map(h => `<tr><td>${h.date}</td><td>${h.item}</td><td><span class="${h.type === 'IN' ? 'type-in' : 'type-out'}">${h.type}</span></td><td>${h.qty}</td></tr>`).join('');
+        const fDate = document.getElementById('filterFrom').value ? new Date(document.getElementById('filterFrom').value).setHours(0,0,0,0) : null;
+        const tDate = document.getElementById('filterTo').value ? new Date(document.getElementById('filterTo').value).setHours(23,59,59,999) : null;
+        
+        const filtered = (SYSTEM.data.history || []).filter(h => {
+            return h.item.toLowerCase().includes(nameF) && (!fDate || h.t >= fDate) && (!tDate || h.t <= tDate);
+        });
+
+        document.getElementById('historyBody').innerHTML = filtered.map(h => 
+            `<tr><td>${h.dt}</td><td>${h.item}</td><td><span class="${h.type === 'IN' ? 'type-in' : 'type-out'}">${h.type}</span></td><td>${h.qty}</td></tr>`
+        ).join('');
     }
 
-    function downloadPDF(tableId, fileName) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text("Membrane Management System", 14, 20);
-        doc.text("Report: " + new Date().toLocaleString(), 14, 28);
-        doc.autoTable({ html: '#' + tableId, startY: 35, theme: 'grid' });
-        doc.save(fileName + ".pdf");
+    function openTab(id, e) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(e) e.target.classList.add('active');
     }
 
-    function toggleAuth(showReg) {
-        document.getElementById('loginForm').style.display = showReg ? 'none' : 'block';
-        document.getElementById('regForm').style.display = showReg ? 'block' : 'none';
-    }
-
-    function loadUserList() {
+    function loadUserAdmin() {
         let html = "";
         for(let u in SYSTEM.users) {
             if(u === ADMIN_USER) continue;
-            const user = SYSTEM.users[u];
-            html += `<tr><td>${u}</td><td><span style="color:${user.status==='active'?'green':'orange'}">${user.status.toUpperCase()}</span></td>
-                <td>${user.status === 'pending' ? `<button style="background:var(--success); color:white; padding:5px 10px; margin-right:5px;" onclick="approve('${u}')">Approve</button>` : ''}
-                <button style="background:var(--danger); color:white; padding:5px 10px;" onclick="delU('${u}')">Delete</button></td></tr>`;
+            html += `<tr><td>${u}</td><td>${SYSTEM.users[u].status}</td>
+                <td><button onclick="approve('${u}')">Approve</button> <button onclick="delU('${u}')">Del</button></td></tr>`;
         }
         document.getElementById('userListBody').innerHTML = html;
     }
-    function approve(u) { SYSTEM.users[u].status = 'active'; SYSTEM.save(); loadUserList(); }
-    function delU(u) { if(confirm("Are you sure?")) { delete SYSTEM.users[u]; SYSTEM.save(); loadUserList(); } }
-
-    async function addNewProduct() {
-        const cat = document.getElementById('newProdCat').value;
-        const name = document.getElementById('newProdName').value.trim();
-        if(!name) return alert("Please enter product name.");
-        
-        if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
-        if(SYSTEM.data.stocks[name] !== undefined) return alert("This product already exists.");
-        
-        if(!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
-        
-        // Update Local
-        SYSTEM.data.categories[cat].push(name);
-        SYSTEM.data.stocks[name] = 0;
-        
-        try {
-            await SYSTEM.save();
-            alert("New Product Added Successfully!");
-            document.getElementById('newProdName').value = "";
-            loadStockDisplay(); // Force refresh local UI
-            updateEntryModels(); // Update dropdowns
-        } catch (e) {
-            alert("Sync Failed! Please check internet connection.");
-        }
-    }
+    function approve(u) { SYSTEM.users[u].status = 'active'; saveToDB(); }
+    function delU(u) { if(confirm("Delete?")) { delete SYSTEM.users[u]; saveToDB(); } }
+    function logout() { localStorage.removeItem('membrane_user'); location.reload(); }
+    function toggleAuth(reg) { document.getElementById('loginForm').style.display = reg?'none':'block'; document.getElementById('regForm').style.display = reg?'block':'none'; }
+    function downloadPDF(tid, name) { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text(name, 14, 15); doc.autoTable({ html: '#'+tid, startY: 20 }); doc.save(name+".pdf"); }
 </script>
 </body>
 </html>
