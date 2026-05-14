@@ -10,7 +10,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD2YM6XeKdw0GU4GIiHTFNPWmPrC9-Fki4",
@@ -28,6 +28,7 @@
         window.db = db;
         window.dbRef = ref;
         window.dbSet = set;
+        window.dbUpdate = update;
         window.dbOnValue = onValue;
         window.dbGet = get;
     </script>
@@ -117,6 +118,9 @@
         
         .btn-pdf { background: var(--primary); color: white; margin-top: 15px; }
         .btn-pdf:hover { background: #000; }
+
+        .btn-approve { background: var(--success); color: white; padding: 5px 10px; font-size: 12px; margin-right: 5px; border-radius: 4px; }
+        .btn-delete { background: var(--danger); color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; }
         
         .type-in { background: #e8f8f0; color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
         .type-out { background: #fdedec; color: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
@@ -219,7 +223,7 @@
             <h2>Access Control</h2>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>User</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>User</th><th>Password</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="userListBody"></tbody>
                 </table>
             </div>
@@ -260,6 +264,7 @@
             if (window.db) {
                 try {
                     const dbRef = window.dbRef(window.db, 'membrane_system');
+                    // ইউজারের তথ্য এবং ডাটা আলাদাভাবে আপডেট করছি যাতে রিফ্রেশে সমস্যা না হয়
                     await window.dbSet(dbRef, {
                         users: this.users,
                         data: this.data
@@ -287,6 +292,9 @@
                 const cloudData = snap.val();
                 if(cloudData.users) SYSTEM.users = cloudData.users;
                 if(cloudData.data) SYSTEM.data = cloudData.data;
+            } else {
+                // প্রথমবার সিস্টেম রান করলে ডিফল্ট ডাটা সেভ হবে
+                await SYSTEM.save();
             }
             checkPersistentSession();
         } catch (e) { console.error("Sync Error:", e); }
@@ -302,16 +310,31 @@
     function enterMainUI(username) {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
-        if(username === ADMIN_USER) document.getElementById('adminTabBtn').style.display = 'block';
+        
+        if(username === ADMIN_USER) {
+            document.getElementById('adminTabBtn').style.display = 'block';
+        }
+        
         initApp();
         
+        // রিয়েলটাইম ডাটা লিসেনার
         window.dbOnValue(window.dbRef(window.db, 'membrane_system/data'), (snapshot) => {
             if (snapshot.exists()) {
                 SYSTEM.data = snapshot.val();
                 loadStockDisplay();
                 applyFilters();
+                updateEntryModels(); // নতুন প্রোডাক্ট এড হলে ড্রপডাউন আপডেট হবে
             }
         });
+
+        if(username === ADMIN_USER) {
+            window.dbOnValue(window.dbRef(window.db, 'membrane_system/users'), (snapshot) => {
+                if (snapshot.exists()) {
+                    SYSTEM.users = snapshot.val();
+                    loadUserList();
+                }
+            });
+        }
     }
 
     function handleAuth(mode) {
@@ -319,19 +342,20 @@
             const u = document.getElementById('userReg').value.trim();
             const p = document.getElementById('passReg').value;
             if(!u || !p) return alert("Fill all fields.");
-            if(SYSTEM.users[u]) return alert("Exists.");
+            if(SYSTEM.users[u]) return alert("Username already exists.");
             SYSTEM.users[u] = { pass: p, status: "pending", role: "user" };
             SYSTEM.save();
-            alert("Requested!"); toggleAuth(false);
+            alert("Access requested!"); 
+            toggleAuth(false);
         } else {
             const u = document.getElementById('userLogin').value;
             const p = document.getElementById('passLogin').value;
             const user = SYSTEM.users[u];
             if(user && user.pass === p) {
-                if(user.status !== "active") return alert("Pending.");
+                if(user.status !== "active") return alert("Pending approval.");
                 localStorage.setItem('membrane_logged_user', u);
                 enterMainUI(u);
-            } else { alert("Invalid."); }
+            } else { alert("Invalid credentials."); }
         }
     }
 
@@ -344,7 +368,6 @@
         document.getElementById('newProdCat').innerHTML = opts;
         updateEntryModels();
         loadStockDisplay();
-        if(localStorage.getItem('membrane_logged_user') === ADMIN_USER) loadUserList();
     }
 
     function openTab(tabId) {
@@ -356,6 +379,7 @@
 
     function updateEntryModels() {
         const cat = document.getElementById('entryCat').value;
+        if(!cat) return;
         const models = (SYSTEM.data.categories && SYSTEM.data.categories[cat]) ? SYSTEM.data.categories[cat] : [];
         document.getElementById('entryModel').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
     }
@@ -378,14 +402,24 @@
         const item = document.getElementById('entryModel').value;
         const qty = parseInt(document.getElementById('entryQty').value);
         if(!item || isNaN(qty) || qty <= 0) return alert("Invalid entry.");
+        
         if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
         if(type === 'OUT' && (SYSTEM.data.stocks[item] || 0) < qty) return alert("Low stock.");
         
         SYSTEM.data.stocks[item] = (SYSTEM.data.stocks[item] || 0) + (type === 'IN' ? qty : -qty);
+        
         if(!SYSTEM.data.history) SYSTEM.data.history = [];
-        SYSTEM.data.history.unshift({ timestamp: new Date().getTime(), date: new Date().toLocaleString(), item, type, qty });
+        SYSTEM.data.history.unshift({ 
+            timestamp: new Date().getTime(), 
+            date: new Date().toLocaleString(), 
+            item, 
+            type, 
+            qty 
+        });
+        
         SYSTEM.save();
-        alert("Success!"); document.getElementById('entryQty').value = 0;
+        alert("Success!"); 
+        document.getElementById('entryQty').value = 0;
     }
 
     function applyFilters() {
@@ -393,6 +427,7 @@
         const nameF = document.getElementById('filterName').value.toLowerCase();
         const fromD = document.getElementById('filterFrom').value ? new Date(document.getElementById('filterFrom').value).setHours(0,0,0,0) : null;
         const toD = document.getElementById('filterTo').value ? new Date(document.getElementById('filterTo').value).setHours(23,59,59,999) : null;
+        
         const filtered = SYSTEM.data.history.filter(h => (h.item.toLowerCase().includes(nameF)) && (!fromD || h.timestamp >= fromD) && (!toD || h.timestamp <= toD));
         document.getElementById('historyBody').innerHTML = filtered.map(h => `<tr><td>${h.date}</td><td>${h.item}</td><td><span class="${h.type === 'IN' ? 'type-in' : 'type-out'}">${h.type}</span></td><td>${h.qty}</td></tr>`).join('');
     }
@@ -415,14 +450,15 @@
         for(let u in SYSTEM.users) {
             if(u === ADMIN_USER) continue;
             const user = SYSTEM.users[u];
-            html += `<tr><td>${u}</td><td>${user.status}</td>
-                <td>${user.status === 'pending' ? `<button onclick="approve('${u}')">Approve</button>` : ''}
-                <button onclick="delU('${u}')">Delete</button></td></tr>`;
+            html += `<tr><td>${u}</td><td><strong>${user.pass}</strong></td><td>${user.status}</td>
+                <td>${user.status === 'pending' ? `<button class="btn-approve" onclick="approve('${u}')">Approve</button>` : ''}
+                <button class="btn-delete" onclick="delU('${u}')">Delete</button></td></tr>`;
         }
         document.getElementById('userListBody').innerHTML = html;
     }
-    function approve(u) { SYSTEM.users[u].status = 'active'; SYSTEM.save(); loadUserList(); }
-    function delU(u) { if(confirm("Sure?")) { delete SYSTEM.users[u]; SYSTEM.save(); loadUserList(); } }
+    
+    function approve(u) { SYSTEM.users[u].status = 'active'; SYSTEM.save(); }
+    function delU(u) { if(confirm("Delete this user?")) { delete SYSTEM.users[u]; SYSTEM.save(); } }
 
     async function addNewProduct() {
         const cat = document.getElementById('newProdCat').value;
@@ -430,32 +466,33 @@
         const btn = document.querySelector('#add_product .btn-auth');
         
         if(!name) return alert("Enter Product Name.");
-        if(SYSTEM.data.stocks && SYSTEM.data.stocks[name] !== undefined) return alert("This product already exists.");
-
+        
+        // ডাটা স্ট্রাকচার চেক
         if(!SYSTEM.data.categories) SYSTEM.data.categories = {};
-        if(!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
         if(!SYSTEM.data.stocks) SYSTEM.data.stocks = {};
+        
+        // ডুপ্লিকেট চেক
+        if(SYSTEM.data.stocks[name] !== undefined) return alert("Already exists.");
 
+        if(!SYSTEM.data.categories[cat]) SYSTEM.data.categories[cat] = [];
+        
+        // লোকাল আপডেট
         SYSTEM.data.categories[cat].push(name);
         SYSTEM.data.stocks[name] = 0;
 
         try {
-            btn.innerText = "Saving to Database...";
+            btn.innerText = "Saving...";
             btn.disabled = true;
 
+            // সরাসরি Firebase-এ সেভ নিশ্চিত করা
             await SYSTEM.save();
             
-            alert("Product Successfully Saved!");
+            alert("New Product Saved!");
             document.getElementById('newProdName').value = "";
-            
-            // UI refresh
             initApp();
-            loadStockDisplay();
-            updateEntryModels();
-
+            
         } catch (error) {
-            console.error("Save Error:", error);
-            alert("Failed to save.");
+            alert("Error saving product.");
         } finally {
             btn.innerText = "Save New Product";
             btn.disabled = false;
